@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% from "_macros.html" import head, impl %}
+{% block title %}Data Preprocessing{% endblock %}
+{% block content %}
+{% set di = meta.get('dataset_info', {}) %}
+{{ head("DATA MINING / PREPROCESSING", "Data <span>Preprocessing</span>", "Machine-learning models need complete, numeric input. This page shows exactly how each feature is prepared in train_model.py.") }}
+
+<section class="block glass-card pad">
+    <h2>Feature processing {{ impl('actual') }}</h2>
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th>Feature</th><th>Type</th><th>Processing</th>{% if di %}<th class="num">Distinct values</th>{% endif %}</tr></thead>
+        <tbody>
+            <tr><td><b>Platform</b></td><td>Categorical</td><td>Most-frequent imputation → One-Hot Encoding</td>{% if di %}<td class="num">{{ di.n_platforms }}</td>{% endif %}</tr>
+            <tr><td><b>Genre</b></td><td>Categorical</td><td>Most-frequent imputation → One-Hot Encoding</td>{% if di %}<td class="num">{{ di.n_genres }}</td>{% endif %}</tr>
+            <tr><td><b>Publisher</b></td><td>Categorical</td><td>Most-frequent imputation → One-Hot Encoding</td>{% if di %}<td class="num">{{ di.n_publishers }}</td>{% endif %}</tr>
+            <tr><td><b>Year</b></td><td>Numerical</td><td>Median imputation + StandardScaler</td>{% if di %}<td class="num">-</td>{% endif %}</tr>
+        </tbody></table></div>
+    {% if meta.get('n_encoded_features') %}
+    <div class="callout">After encoding, the model receives <b>{{ '{:,}'.format(meta.n_encoded_features) }}</b> numeric columns ({{ '{:,}'.format(meta.n_encoded_features - 1) }} one-hot columns + 1 scaled Year). Missing in the cleaned training data: {{ di.missing_year }} Year values and {{ di.missing_publisher }} Publisher values were filled by the imputers.</div>
+    {% endif %}
+</section>
+
+<section class="block grid-2">
+    <div class="glass-card pad"><h2>SimpleImputer</h2>
+        <p>Replaces missing values with a statistic learned from the training data: <code>most_frequent</code> for the three categorical columns and <code>median</code> for Year (robust to outliers). Without it, scikit-learn estimators would raise an error on NaN.</p></div>
+    <div class="glass-card pad"><h2>OneHotEncoder</h2>
+        <p>Turns each category into its own 0/1 column using <code>handle_unknown="ignore"</code>, so a platform or publisher never seen during training produces all zeros instead of crashing the Flask app.</p></div>
+    <div class="glass-card pad"><h2>StandardScaler</h2>
+        <p>Rescales Year to mean 0 and standard deviation 1: <code>z = (x − mean) / std</code>. It keeps the numeric feature on a scale comparable to the 0/1 columns, which matters for linear models.</p></div>
+    <div class="glass-card pad"><h2>ColumnTransformer</h2>
+        <p>Applies the right transformation to the right columns in parallel: the categorical pipeline to <code>Platform, Genre, Publisher</code> and the numeric pipeline to <code>Year</code>, then joins the results into one feature matrix.</p></div>
+    <div class="glass-card pad" style="grid-column:1/-1"><h2>Pipeline</h2>
+        <p>Chains preprocessing and the model into one object (<code>Pipeline([("preprocessor", …), ("model", …)])</code>). The pipeline is fitted on the training split only, which prevents data leakage from the test set, and the saved <code>.joblib</code> file applies exactly the same preprocessing at prediction time.</p>
+        <pre class="code">preprocessor = ColumnTransformer([
+    ("cat", Pipeline([("imputer", SimpleImputer(strategy="most_frequent")),
+                      ("onehot", OneHotEncoder(handle_unknown="ignore"))]), ["Platform","Genre","Publisher"]),
+    ("num", Pipeline([("imputer", SimpleImputer(strategy="median")),
+                      ("scaler", StandardScaler())]), ["Year"]),
+])</pre></div>
+</section>
+
+<section class="block glass-card pad">
+    <h2>Why is One-Hot Encoding required?</h2>
+    <p>Regression algorithms do arithmetic on numbers. If "PS4", "Wii" and "PC" were mapped to 1, 2, 3 the model would wrongly assume PC &gt; Wii &gt; PS4 and that the "distance" between them is meaningful (<i>ordinal</i> encoding). One-hot encoding avoids this: each platform, genre or publisher gets its own binary column, so the model can learn a separate effect for each category with no artificial order. The trade-off is dimensionality - {{ di.n_publishers if di else 'many' }} distinct publishers alone create that many sparse columns.</p>
+</section>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% from "_macros.html" import head %}
+{% block title %}Sales Prediction{% endblock %}
+{% block content %}
+{{ head("MODEL INFERENCE", "Sales <span>Prediction</span>", "Choose a platform, genre, publisher and release year. Both trained pipelines (Linear Regression and Random Forest) estimate Global_Sales in million units. The result opens in a new tab.") }}
+<section class="block" style="max-width:860px">
+    {% include "_predict_form.html" %}
+    <div class="callout">The prediction uses only four features - Platform, Genre, Publisher and Year. It does not know the game's quality, marketing budget or franchise strength, so treat the output as a statistical estimate, not a forecast with a confidence interval.</div>
+</section>
+{% endblock %}

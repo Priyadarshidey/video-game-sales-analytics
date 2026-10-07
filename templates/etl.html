@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "_macros.html" import head, pipeline, kpi, impl %}
+{% block title %}ETL Pipeline{% endblock %}
+{% block content %}
+{{ head("DATA WAREHOUSING / ETL", "ETL <span>Pipeline</span>", "Extract, Transform, Load: how vgsales.csv becomes the star schema, and how that connects to the prediction models. Click any stage.") }}
+
+<section class="block">
+    {{ pipeline("etlPipe", stages) }}
+</section>
+
+<section class="block grid-3">
+    <div class="glass-card pad"><span class="badge b-actual">Extract</span><h3 style="margin-top:10px">Reads data/vgsales.csv</h3><p>Uses pandas. Result: {{ '{:,}'.format(etl.raw_rows) }} rows × {{ etl.raw_columns }} columns.</p></div>
+    <div class="glass-card pad"><span class="badge b-actual">Transform</span><h3 style="margin-top:10px">Cleans Year and Global_Sales, removes duplicates, handles missing values</h3><p>{{ etl.duplicates_removed }} duplicates removed, {{ etl.missing_year }} unknown years, {{ etl.missing_publisher }} unknown publishers.</p></div>
+    <div class="glass-card pad"><span class="badge b-actual">Load</span><h3 style="margin-top:10px">Stores transformed data in the star schema</h3><p>{{ '{:,}'.format(etl.fact_rows) }} fact rows + 5 dimension tables written to datawarehouse.db.</p></div>
+</section>
+
+<section class="block glass-card pad">
+    <h2>Real ETL run log <span class="badge b-info">from the etl_log table</span></h2>
+    <div class="kv">
+        <div>Source file</div><div>data/vgsales.csv</div>
+        <div>Rows extracted</div><div>{{ '{:,}'.format(etl.raw_rows) }}</div>
+        <div>Invalid rows dropped</div><div>{{ etl.dropped_invalid }}</div>
+        <div>Duplicate releases removed</div><div>{{ etl.duplicates_removed }}</div>
+        <div>Missing Year (→ Unknown member)</div><div>{{ etl.missing_year }}</div>
+        <div>Missing Publisher (→ 'Unknown')</div><div>{{ etl.missing_publisher }}</div>
+        <div>Missing Genre (→ 'Unknown')</div><div>{{ etl.missing_genre }}</div>
+        <div>Fact rows loaded</div><div>{{ '{:,}'.format(etl.fact_rows) }}</div>
+        <div>Dimension rows</div><div>game {{ '{:,}'.format(etl.dim_game_rows) }} · platform {{ etl.dim_platform_rows }} · genre {{ etl.dim_genre_rows }} · publisher {{ etl.dim_publisher_rows }} · year {{ etl.dim_year_rows }}</div>
+        <div>Built at</div><div>{{ etl.built_at }}{% if etl.seconds %} ({{ etl.seconds }} s){% endif %}</div>
+    </div>
+    <div class="callout">Rebuild manually with <code>python warehouse.py</code> (also runs at the end of <code>python train_model.py</code>). The database is recreated automatically if it is missing or older than the CSV.</div>
+</section>
+{% endblock %}

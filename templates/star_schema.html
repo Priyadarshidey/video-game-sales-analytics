@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_macros.html" import head, impl %}
+{% block title %}Star Schema{% endblock %}
+{% block content %}
+{{ head("DATA WAREHOUSING / STAR SCHEMA", "Star <span>Schema</span>", "How the Video Game Sales dataset is organised in the warehouse.") }}
+
+<section class="block grid-2">
+    <div class="glass-card pad">
+        <h2>What is a star schema?</h2>
+        <p>A star schema is the simplest dimensional-modelling layout for a data warehouse. One central <b>fact table</b> stores numeric <i>measures</i> (things you add up or average) and foreign keys; around it sit small, denormalised <b>dimension tables</b> that describe <i>who, what, where and when</i>. Plotted, the fact table is the centre and the dimensions are the points of a star.</p>
+        <p><b>Why it is used:</b> queries need only one join per dimension, aggregations such as "global sales per genre per year" are fast and easy to write, and descriptive text is stored once instead of being repeated on every row.</p>
+    </div>
+    <div class="glass-card pad">
+        <h2>How it is used in this project {{ impl('actual') }}</h2>
+        <p>The cleaned CSV is split into one fact table and five dimensions in <code>warehouse.transform()</code> and stored in SQLite (<code>datawarehouse.db</code>) by <code>warehouse.load()</code>.</p>
+        <ul>
+            <li><b>Fact_Sales</b> - one row per game released on a platform; measures NA, EU, JP, Other and Global sales (million units).</li>
+            <li><b>Dim_Game / Dim_Platform / Dim_Genre / Dim_Publisher / Dim_Year</b> - each stores every distinct value once with an integer surrogate key.</li>
+        </ul>
+        <div class="callout"><b>Grain:</b> one fact row = one game on one platform (e.g. "Wii Sports" on Wii). The same game on another platform is a separate row but reuses the same Game_ID.</div>
+    </div>
+</section>
+
+<section class="block glass-card pad">
+    <h2>Schema diagram <span class="badge b-info">live row counts from SQLite</span></h2>
+    {% include "_star.html" %}
+    <div class="pill-row"><span>PK = primary key</span><span>FK = foreign key to a dimension</span><span>measure = numeric fact</span></div>
+</section>
+
+<section class="block glass-card pad">
+    <h2>Relationships</h2>
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th>Fact_Sales column</th><th>References</th><th>Cardinality</th></tr></thead>
+        <tbody>
+            <tr><td><code>Game_ID</code></td><td>Dim_Game.Game_ID</td><td>many fact rows → one game</td></tr>
+            <tr><td><code>Platform_ID</code></td><td>Dim_Platform.Platform_ID</td><td>many → one</td></tr>
+            <tr><td><code>Genre_ID</code></td><td>Dim_Genre.Genre_ID</td><td>many → one</td></tr>
+            <tr><td><code>Publisher_ID</code></td><td>Dim_Publisher.Publisher_ID</td><td>many → one</td></tr>
+            <tr><td><code>Year_ID</code></td><td>Dim_Year.Year_ID</td><td>many → one</td></tr>
+        </tbody></table></div>
+    <h3 style="margin-top:18px">Example analytical query (works on the real database)</h3>
+    <pre class="code">SELECT ge.Genre, y.Year, ROUND(SUM(f.Global_Sales), 2) AS global_sales
+FROM fact_sales f
+JOIN dim_genre ge ON ge.Genre_ID = f.Genre_ID
+JOIN dim_year  y  ON y.Year_ID   = f.Year_ID
+GROUP BY ge.Genre, y.Year
+ORDER BY global_sales DESC;</pre>
+    <div class="callout warn"><b>Conceptual mapping:</b> the machine-learning models are trained by <code>train_model.py</code> directly from <code>data/vgsales.csv</code>, not by querying this database. The warehouse holds the same cleaned records, and the ML dataset (Platform, Year, Genre, Publisher → Global_Sales) corresponds to joining Fact_Sales with Dim_Platform, Dim_Year, Dim_Genre and Dim_Publisher.</div>
+</section>
+{% endblock %}
+{% block scripts %}<script>GS.starLines();</script>{% endblock %}

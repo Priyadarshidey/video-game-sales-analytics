@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% from "_macros.html" import head, fm %}
+{% block title %}Model Comparison{% endblock %}
+{% block content %}
+{{ head("MACHINE LEARNING / COMPARISON", "Model <span>Comparison</span>", "Linear Regression vs Random Forest Regression, evaluated on the same held-out test set. Every value comes from the trained models.") }}
+
+{% if comp %}
+<section class="recommend">
+    <div class="ico">🏆</div>
+    <div>
+        <small>RECOMMENDED MODEL</small>
+        <h2>{{ comp.recommended_name }}</h2>
+        <p>{{ comp.reason }} Win count: Linear {{ comp.wins.linear }} · Random Forest {{ comp.wins.random_forest }}.
+        {% if comp.wins.linear != comp.wins.random_forest and comp.wins.linear > 0 and comp.wins.random_forest > 0 %}Neither model wins everything - see the table for which metric favours which model.{% endif %}</p>
+    </div>
+</section>
+
+<section class="block glass-card pad">
+    <h2>Metric comparison <span class="badge b-info">lower = better for MAE, MSE, RMSE, MAPE · higher = better for R²</span></h2>
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th>Metric</th><th class="num">Linear Regression</th><th class="num">Random Forest</th><th>Better</th></tr></thead>
+        <tbody>
+        {% for r in comp.rows %}
+        <tr><td>{{ r.label }}<br><small style="color:#6f80a8">{{ 'lower is better' if r.better == 'lower' else 'higher is better' }}</small></td>
+            <td class="num {% if r.winner == 'linear' %}win{% endif %}">{{ fm(r.key, r.linear) }}</td>
+            <td class="num {% if r.winner == 'random_forest' %}win{% endif %}">{{ fm(r.key, r.random_forest) }}</td>
+            <td>{% if r.winner == 'linear' %}<span class="badge b-model-l">Linear</span>{% elif r.winner == 'random_forest' %}<span class="badge b-model-r">Random Forest</span>{% else %}Tie{% endif %}</td></tr>
+        {% endfor %}
+        </tbody></table></div>
+    <div class="callout warn">MAPE excludes rows with a zero actual value (safe division). Because most games sell little, percentage errors are large for both models; compare MAPE together with MAE and RMSE. Low R² on both models means platform, genre, publisher and year alone explain only a small part of why a game sells.</div>
+</section>
+
+<section class="block grid-2">
+    <div class="glass-card pad"><h3>MAE (lower is better)</h3><div class="chart-box short"><canvas id="cMAE"></canvas></div></div>
+    <div class="glass-card pad"><h3>RMSE (lower is better)</h3><div class="chart-box short"><canvas id="cRMSE"></canvas></div></div>
+    <div class="glass-card pad"><h3>R² (higher is better)</h3><div class="chart-box short"><canvas id="cR2"></canvas></div></div>
+    <div class="glass-card pad"><h3>MAPE % (lower is better)</h3><div class="chart-box short"><canvas id="cMAPE"></canvas></div></div>
+</section>
+
+<section class="block grid-2">
+    <div class="glass-card pad">
+        <div class="chart-head"><h3>Actual vs Predicted (both models)</h3><button class="btn" id="cmpZoom" type="button">Show full range</button></div>
+        <div class="chart-box tall"><canvas id="cScatter"></canvas></div>
+    </div>
+    <div class="glass-card pad">
+        <div class="chart-head"><h3>First 40 test games: actual vs predicted</h3></div>
+        <div class="chart-box tall"><canvas id="cLine"></canvas></div>
+    </div>
+</section>
+{% else %}
+<div class="notice">Comparison needs the upgraded training output. Run <code>python train_model.py</code>, then restart the app.</div>
+{% endif %}
+
+<section class="block glass-card pad">
+    <h2>Qualitative comparison</h2>
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th>Aspect</th><th>Linear Regression</th><th>Random Forest Regression</th></tr></thead>
+        <tbody>
+            <tr><td>Model type</td><td>Parametric linear model</td><td>Non-parametric ensemble of decision trees</td></tr>
+            <tr><td>Training approach</td><td>Ordinary least squares, single fit</td><td>Bootstrap sampling of rows, many trees averaged</td></tr>
+            <tr><td>Preprocessing</td><td colspan="2">Same shared pipeline: imputation → One-Hot Encoding (categorical) / StandardScaler (Year)</td></tr>
+            <tr><td>Hyperparameter optimization</td><td>None</td><td>GridSearchCV over n_estimators, max_depth, min_samples_split (3-fold CV, MAE)</td></tr>
+            <tr><td>Interpretability</td><td>High - one coefficient per feature</td><td>Medium - feature importance, but individual predictions are hard to trace</td></tr>
+            <tr><td>Strengths</td><td>Fast, simple, stable baseline; no tuning</td><td>Captures non-linear effects and interactions; robust to outliers in features</td></tr>
+            <tr><td>Limitations</td><td>Only additive linear effects; can predict negative sales; sensitive to many sparse columns</td><td>Slower, larger saved file; can overfit rare categories; cannot extrapolate beyond training values</td></tr>
+        </tbody></table></div>
+</section>
+{% endblock %}
+{% block scripts %}{% if comp %}<script>GS.comparisonCharts();</script>{% endif %}{% endblock %}

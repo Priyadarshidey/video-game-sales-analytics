@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dashboard{% endblock %} | GameSales AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="app-body">
+    <div class="bg-grid"></div>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <header class="navbar">
+        <button class="menu-btn" id="menuBtn" aria-label="Open navigation">☰</button>
+        <a class="brand" href="{{ url_for('index') }}">
+            <span class="brand-icon">🎮</span>
+            <span class="brand-text"><b>GameSales<i>AI</i></b><small>Data Analytics &amp; ML Platform</small></span>
+        </a>
+        <nav class="top-nav" aria-label="Main navigation">
+            {% for label, href, match in top_nav %}
+            <a href="{{ href }}" class="{% if (match == '/' and current_path == '/') or (match != '/' and current_path.startswith(match)) %}active{% endif %}">{{ label }}</a>
+            {% endfor %}
+        </nav>
+        <div class="system-pill"><span></span> ML SYSTEM ONLINE</div>
+    </header>
+
+    <div class="layout">
+        <aside class="sidebar" id="sidebar" aria-label="Section navigation">
+            <button class="sb-toggle" id="sbToggle" type="button" title="Collapse / expand sidebar">
+                <span class="sb-ico">☰</span><span class="sb-label">Collapse sidebar</span>
+            </button>
+
+            <div class="sb-group sb-mobile-only">
+                <div class="sb-title">Main</div>
+                {% for label, href, match in top_nav %}
+                <a class="sb-link {% if current_path == href %}active{% endif %}" href="{{ href }}"><span class="sb-ico">›</span><span class="sb-label">{{ label }}</span></a>
+                {% endfor %}
+            </div>
+
+            {% for group in sidebar %}
+            <div class="sb-group">
+                <div class="sb-title">{{ group.title }}</div>
+                {% for icon, label, href in group['items'] %}
+                <a class="sb-link {% if current_path == href %}active{% endif %}" href="{{ href }}" title="{{ label }}">
+                    <span class="sb-ico">{{ icon }}</span><span class="sb-label">{{ label }}</span>
+                </a>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </aside>
+
+        <main class="content">
+            {% if not ready %}
+            <div class="notice"><b>Model analytics not generated yet.</b> The saved <code>models/metadata.joblib</code> was created by an older version of the training script, so metrics such as MAPE, chart data and feature importance are unavailable. Prediction still works. To generate everything run <code>python train_model.py</code> and restart <code>python app.py</code>.</div>
+            {% endif %}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='vendor/chart.umd.js') }}"></script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

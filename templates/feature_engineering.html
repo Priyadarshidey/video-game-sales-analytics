@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "_macros.html" import head, impl %}
+{% block title %}Feature Engineering{% endblock %}
+{% block content %}
+{{ head("DATA MINING / FEATURE ENGINEERING", "Feature <span>Engineering</span>", "Which columns become model inputs, which are left out, and why. Distinguishes what the code really does from ideas that are not implemented.") }}
+
+<section class="block grid-2">
+    <div class="glass-card pad">
+        <h2>Feature selection {{ impl('actual') }}</h2>
+        <div class="kv">
+            <div>Selected features</div><div>Platform, Year, Genre, Publisher</div>
+            <div>Target</div><div>Global_Sales</div>
+            <div>Excluded</div><div>Rank, Name, NA_Sales, EU_Sales, JP_Sales, Other_Sales</div>
+        </div>
+        <p style="margin-top:14px">Selection is done in <code>train_model.py</code> by keeping only <code>["Platform","Year","Genre","Publisher","Global_Sales"]</code>. The regional sales are excluded to prevent target leakage (they add up to Global_Sales), and Name/Rank are identifiers.</p>
+    </div>
+    <div class="glass-card pad">
+        <h2>Feature transformation {{ impl('actual') }}</h2>
+        <ul>
+            <li><b>Categorical → numeric:</b> One-Hot Encoding creates {{ '{:,}'.format(meta.get('n_encoded_features', 0)) }} columns from Platform, Genre and Publisher.</li>
+            <li><b>Numeric scaling:</b> Year is standardised with StandardScaler.</li>
+            <li><b>Missing values:</b> imputed inside the pipeline (see Preprocessing).</li>
+        </ul>
+        <div class="callout warn"><b>Not implemented:</b> the project does not create derived features such as game age, platform generation, publisher size or sales history. Those would be natural future work and could improve R², but they are <u>not</u> part of the current code.</div>
+    </div>
+</section>
+
+<section class="block glass-card pad">
+    <h2>Dataset cardinality</h2>
+    <div class="table-wrap"><table class="data"><thead><tr><th>Feature</th><th class="num">Distinct values in dataset ({{ '{:,}'.format(ds.records) }} rows)</th></tr></thead><tbody>
+        <tr><td>Platform</td><td class="num">{{ ds.platforms }}</td></tr>
+        <tr><td>Genre</td><td class="num">{{ ds.genres }}</td></tr>
+        <tr><td>Publisher</td><td class="num">{{ ds.publishers }}</td></tr>
+        <tr><td>Year</td><td class="num">{{ ds.year_max - ds.year_min + 1 }} calendar years ({{ ds.year_min }}-{{ ds.year_max }})</td></tr>
+    </tbody></table></div>
+    <p>Publisher has by far the highest cardinality, which is why most one-hot columns come from it and why a handful of large publishers show up among the top Random Forest features (listed below).</p>
+</section>
+
+{% if meta.get('feature_importance') %}
+<section class="block glass-card pad">
+    <h2>Most informative encoded features <span class="badge b-info">from the trained Random Forest</span></h2>
+    <div class="table-wrap"><table class="data"><thead><tr><th>#</th><th>Encoded feature</th><th class="num">Importance</th></tr></thead><tbody>
+    {% for f in meta.feature_importance[:8] %}<tr><td>{{ loop.index }}</td><td><code>{{ f.feature }}</code></td><td class="num">{{ '%.4f' % f.importance }}</td></tr>{% endfor %}
+    </tbody></table></div>
+    <p><a href="{{ url_for('model_rf') }}">See the full chart on the Random Forest page →</a></p>
+</section>
+{% endif %}
+{% endblock %}

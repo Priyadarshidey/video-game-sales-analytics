@@ -1,0 +1,51 @@
+<div class="glass-card form-card wide" id="predict">
+    <div class="section-heading">
+        <div class="section-icon">▣</div>
+        <div>
+            <h2>Predict Global Sales</h2>
+            <p>Select the game attributes to generate an estimate from both trained models.</p>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('predict') }}" target="_blank" class="predict-form">
+        <div class="field">
+            <label for="platform">🎮 Platform</label>
+            <select id="platform" name="platform" required>
+                <option value="">Select platform</option>
+                {% for p in platforms %}
+                <option value="{{ p }}" {% if form.platform == p %}selected{% endif %}>{{ p }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="genre">✣ Genre</label>
+            <select id="genre" name="genre" required>
+                <option value="">Select genre</option>
+                {% for g in genres %}
+                <option value="{{ g }}" {% if form.genre == g %}selected{% endif %}>{{ g }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="publisher">▦ Publisher</label>
+            <select id="publisher" name="publisher" required>
+                <option value="">Select publisher</option>
+                {% for p in publishers %}
+                <option value="{{ p }}" {% if form.publisher == p %}selected{% endif %}>{{ p }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="year">◷ Release Year</label>
+            <input id="year" type="number" name="year" min="1980" max="2030" placeholder="e.g. 2015" required>
+        </div>
+
+        <button class="predict-button" type="submit">
+            <span>✦</span> PREDICT SALES <b>→</b>
+        </button>
+        <p class="form-hint">Results open in a separate tab so your dashboard stays available.</p>
+    </form>
+</div>

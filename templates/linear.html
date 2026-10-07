@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "_macros.html" import head, impl, metric_cards, mape_note, fm %}
+{% block title %}Linear Regression{% endblock %}
+{% block content %}
+{% set di = meta.get('dataset_info', {}) %}
+{{ head("MACHINE LEARNING / BASELINE", "Linear <span>Regression</span>", "The baseline model: a straight-line (linear) relationship between the encoded inputs and Global_Sales.") }}
+
+<section class="block grid-2">
+    <div class="glass-card pad">
+        <h2>What is Linear Regression?</h2>
+        <p>Linear Regression predicts a number as a weighted sum of the input columns: <code>ŷ = b₀ + b₁x₁ + b₂x₂ + … + bₙxₙ</code>. The weights <i>b</i> are chosen by ordinary least squares, i.e. to minimise the sum of squared differences between actual and predicted values on the training data.</p>
+        <h3 style="margin-top:14px">Why it is the baseline</h3>
+        <p>It is simple, fast and has no hyper-parameters. Any more complex model must beat it to justify its extra complexity. If a Random Forest barely improves on this baseline, the extra complexity is not buying much.</p>
+    </div>
+    <div class="glass-card pad">
+        <h2>How it works in this project {{ impl('actual') }}</h2>
+        <div class="kv">
+            <div>Input</div><div>Platform, Year, Genre, Publisher</div>
+            <div>Output</div><div>Predicted Global_Sales (million units)</div>
+            <div>Pipeline</div><div>preprocessor (impute + one-hot + scale) → <code>LinearRegression()</code></div>
+            <div>Hyper-parameters</div><div>none (defaults)</div>
+            <div>Saved file</div><div><code>models/linear_model.joblib</code></div>
+        </div>
+        <p style="margin-top:12px">Each one-hot column gets its own coefficient, so every platform, genre and publisher contributes a fixed additive amount to the prediction. It cannot represent interactions such as "Shooter games sell better on PS3 than on DS". Predictions can be negative; the web app clips displayed predictions to 0.</p>
+    </div>
+</section>
+
+{% if ready %}
+<section class="block glass-card pad">
+    <h2>Evaluation results <span class="badge b-info">test set</span></h2>
+    {{ metric_cards(m) }}
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th>Metric</th><th class="num">Value</th><th>Meaning</th></tr></thead>
+        <tbody>
+        <tr><td>Mean Absolute Error (MAE)</td><td class="num">{{ fm('MAE', m.MAE) }}</td><td>average size of the error, in million units</td></tr>
+        <tr><td>Mean Squared Error (MSE)</td><td class="num">{{ fm('MSE', m.MSE) }}</td><td>average squared error - punishes large misses</td></tr>
+        <tr><td>Root Mean Squared Error (RMSE)</td><td class="num">{{ fm('RMSE', m.RMSE) }}</td><td>square root of MSE, in million units</td></tr>
+        <tr><td>R² Score</td><td class="num">{{ fm('R2', m.R2) }}</td><td>share of variance in Global_Sales explained (1 = perfect, 0 = no better than the mean)</td></tr>
+        <tr><td>Mean Absolute Percentage Error (MAPE)</td><td class="num">{{ fm('MAPE', m.MAPE) }}</td><td>average error as a percentage of the actual value (zero actuals excluded)</td></tr>
+        </tbody></table></div>
+    {{ mape_note(m) }}
+    <h3 style="margin-top:18px">Experiment details</h3>
+    <div class="kv">
+        <div>Model type</div><div>Linear Regression (ordinary least squares)</div>
+        <div>Target variable</div><div>Global_Sales</div>
+        <div>Training samples</div><div>{{ '{:,}'.format(di.n_train) }}</div>
+        <div>Test samples</div><div>{{ '{:,}'.format(di.n_test) }}</div>
+        <div>Number of test samples used for evaluation</div><div>{{ '{:,}'.format(di.n_test) }}</div>
+        <div>Split</div><div>80% / 20%, random_state = {{ di.random_state }}</div>
+        <div>Trained at</div><div>{{ meta.get('trained_at', '-') }}</div>
+    </div>
+</section>
+
+<section class="block grid-2">
+    <div class="glass-card pad">
+        <div class="chart-head"><h3>Actual vs Predicted Global Sales</h3><button class="btn" id="linZoom" type="button">Show full range</button></div>
+        <div class="chart-box tall"><canvas id="linScatter"></canvas></div>
+        <p style="margin-bottom:0;font-size:12px">Each dot is one test-set game. Points on the dashed line would be perfect predictions.</p>
+    </div>
+    <div class="glass-card pad">
+        <div class="chart-head"><h3>Residual distribution (actual − predicted)</h3></div>
+        <div class="chart-box tall"><canvas id="linResid"></canvas></div>
+        <p id="linResidNote" style="margin-bottom:0;font-size:12px"></p>
+    </div>
+</section>
+{% endif %}
+{% endblock %}
+{% block scripts %}{% if ready %}<script>GS.modelCharts('linear');</script>{% endif %}{% endblock %}

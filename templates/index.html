@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% from "_macros.html" import head, kpi, pipeline, fm %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+{{ head("DATA WAREHOUSING · DATA MINING · MACHINE LEARNING", "Video Game Sales <span>Analytics Dashboard</span>",
+        "A complete analytics system built on the Kaggle Video Game Sales dataset: a star-schema data warehouse in SQLite, a data-mining pipeline, and two regression models that predict global sales.") }}
+
+<section class="kpi-grid">
+    {{ kpi("Total Games", '{:,}'.format(s.games), "unique titles (Dim_Game)") }}
+    {{ kpi("Total Platforms", s.platforms, "Dim_Platform") }}
+    {{ kpi("Total Genres", s.genres, "Dim_Genre") }}
+    {{ kpi("Total Publishers", '{:,}'.format(s.publishers), "Dim_Publisher") }}
+    {{ kpi("Total Global Sales", '{:,.1f}M'.format(s.global_sales), "million units") }}
+    {{ kpi("Dataset Records", '{:,}'.format(ds.records), '{:,} in warehouse after cleaning'.format(s.total_records)) }}
+</section>
+
+<section class="nav-cards">
+    <a class="nav-card" href="{{ url_for('dw_overview') }}">
+        <div class="ico">▣</div><h3>Data Warehouse</h3>
+        <p>Star schema, fact &amp; dimension tables and the ETL process stored in SQLite.</p><span class="go">Open module →</span></a>
+    <a class="nav-card" href="{{ url_for('dm_overview') }}">
+        <div class="ico">⛏</div><h3>Data Mining</h3>
+        <p>The ten-stage mining pipeline: cleaning, imputation, encoding, scaling and splitting.</p><span class="go">Open module →</span></a>
+    <a class="nav-card" href="{{ url_for('model_linear') }}">
+        <div class="ico">🧠</div><h3>Machine Learning</h3>
+        <p>Linear Regression baseline and a GridSearchCV-tuned Random Forest.</p><span class="go">Open module →</span></a>
+    <a class="nav-card" href="{{ url_for('model_comparison') }}">
+        <div class="ico">⚖</div><h3>Model Comparison</h3>
+        <p>Metrics, charts and a recommended model computed from the real test results.</p><span class="go">Open module →</span></a>
+</section>
+
+<section class="block glass-card pad">
+    <div class="chart-head"><h2 class="h2" style="margin:0">Mini Model Comparison</h2>
+        <a class="btn" href="{{ url_for('model_comparison') }}">Full comparison →</a></div>
+    {% if comp %}
+    <p style="margin:0 0 14px">Recommended: <b style="color:#7df0a8">{{ comp.recommended_name }}</b> - {{ comp.reason }}</p>
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th>Metric</th><th class="num">Linear Regression</th><th class="num">Random Forest</th></tr></thead>
+        <tbody>
+        {% for r in comp.rows %}
+        <tr><td>{{ r.label }}</td>
+            <td class="num {% if r.winner == 'linear' %}win{% endif %}">{{ fm(r.key, r.linear) }}</td>
+            <td class="num {% if r.winner == 'random_forest' %}win{% endif %}">{{ fm(r.key, r.random_forest) }}</td></tr>
+        {% endfor %}
+        </tbody></table></div>
+    {% else %}
+    <p>Metrics appear here after running <code>python train_model.py</code>.</p>
+    {% endif %}
+</section>
+
+<section class="block">
+    <h2>System Pipeline <span class="badge b-info">click a stage</span></h2>
+    {{ pipeline("sysPipe", etl_stages) }}
+</section>
+
+<section class="block" id="prediction-form">
+    <div class="grid-2" style="grid-template-columns: minmax(0,1.6fr) minmax(0,1fr)">
+        {% include "_predict_form.html" %}
+        <aside class="side-panel" style="grid-template-rows:none">
+            <div class="mini-card"><span class="mini-icon">◈</span><div><strong>Real Dataset</strong><small>Kaggle Video Game Sales · {{ s.year_min }}-{{ s.year_max }}</small></div></div>
+            <div class="mini-card"><span class="mini-icon">⚙</span><div><strong>Machine Learning</strong><small>Linear Regression + Random Forest</small></div></div>
+            <div class="mini-card"><span class="mini-icon">◎</span><div><strong>Global Prediction</strong><small>Sales estimated in million units</small></div></div>
+            <div class="mini-card"><span class="mini-icon">ϟ</span><div><strong>Fast Inference</strong><small>Trained models loaded with Joblib</small></div></div>
+        </aside>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% macro head(eyebrow, title, desc) %}
+<div class="page-head">
+    <div class="eyebrow">{{ eyebrow }}</div>
+    <h1>{{ title|safe }}</h1>
+    {% if desc %}<p>{{ desc }}</p>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro impl(kind) %}{% if kind == 'actual' %}<span class="badge b-actual">Actual implementation</span>{% else %}<span class="badge b-concept">Conceptual mapping</span>{% endif %}{% endmacro %}
+
+{% macro kpi(label, value, sub='') %}
+<div class="kpi"><small>{{ label }}</small><b>{{ value }}</b>{% if sub %}<span>{{ sub }}</span>{% endif %}</div>
+{% endmacro %}
+
+{% macro pipeline(pid, stages, vertical=False) %}
+<div class="pipeline {% if vertical %}vertical{% endif %}" id="{{ pid }}" data-pipeline>
+    {% for s in stages %}
+    <button type="button" class="stage" data-idx="{{ loop.index0 }}"><span class="stage-no">{{ '%02d' % loop.index }}</span><span class="stage-ico">{{ s.icon }}</span>{{ s.title }}</button>
+    {% if not loop.last %}<span class="stage-arrow">{{ '↓' if vertical else '→' }}</span>{% endif %}
+    {% endfor %}
+</div>
+<div class="stage-detail glass-card" id="{{ pid }}-detail"></div>
+<script type="application/json" id="{{ pid }}-data">{{ stages|tojson }}</script>
+{% endmacro %}
+
+{# metric formatting #}
+{% macro fm(key, v) %}{% if v is none %}-{% elif key == 'MAPE' %}{{ '%.2f' % v }}%{% elif key == 'R2' %}{{ '%.4f' % v }}{% elif key == 'MSE' %}{{ '%.4f' % v }}{% else %}{{ '%.4f' % v }}{% endif %}{% endmacro %}
+
+{% macro metric_cards(m) %}
+<div class="metric-grid">
+    <div class="metric"><small>MAE</small><b>{{ fm('MAE', m.get('MAE')) }}</b><span>million units</span></div>
+    <div class="metric"><small>MSE</small><b>{{ fm('MSE', m.get('MSE')) }}</b><span>million units²</span></div>
+    <div class="metric"><small>RMSE</small><b>{{ fm('RMSE', m.get('RMSE')) }}</b><span>million units</span></div>
+    <div class="metric"><small>R²</small><b>{{ fm('R2', m.get('R2')) }}</b><span>variance explained</span></div>
+    <div class="metric"><small>MAPE</small><b>{% if m.get('MAPE') is none %}n/a{% else %}{{ fm('MAPE', m.get('MAPE')) }}{% endif %}</b><span>percentage error</span></div>
+</div>
+{% endmacro %}
+
+{% macro mape_note(m) %}
+<div class="callout warn"><b>About MAPE:</b> Mean Absolute Percentage Error is computed as mean(|actual − predicted| / |actual|) × 100, <b>excluding rows where the actual value is 0</b> to avoid division by zero.
+{% if m.get('MAPE_samples_used') is not none %}Here {{ '{:,}'.format(m.get('MAPE_samples_used')) }} test samples were used and {{ m.get('MAPE_samples_excluded', 0) }} excluded.{% endif %}
+Most games sell very little (a median of well under 0.5 million units), so a small absolute error can still be a large percentage - MAPE is therefore high for this dataset and should be read together with MAE/RMSE.</div>
+{% endmacro %}

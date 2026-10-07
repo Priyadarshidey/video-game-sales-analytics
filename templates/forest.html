@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% from "_macros.html" import head, impl, metric_cards, mape_note, fm %}
+{% block title %}Random Forest{% endblock %}
+{% block content %}
+{% set di = meta.get('dataset_info', {}) %}
+{% set cfg = meta.get('rf_config', {}) %}
+{{ head("MACHINE LEARNING / ENSEMBLE", "Random Forest <span>Regression</span>", "An ensemble of decision trees tuned with GridSearchCV.") }}
+
+<section class="block grid-2">
+    <div class="glass-card pad">
+        <h2>What is Random Forest Regression?</h2>
+        <p>A Random Forest builds many decision trees, each trained on a random bootstrap sample of the rows and considering a random subset of features at every split. For regression the forest's prediction is the <b>average</b> of all tree predictions.</p>
+        <h3 style="margin-top:14px">How the trees are combined</h3>
+        <p>Individual deep trees overfit, but their errors are partly uncorrelated, so averaging them (bagging) reduces variance while keeping the ability to learn non-linear effects and feature interactions.</p>
+        <h3 style="margin-top:14px">Why it suits this dataset</h3>
+        <p>Sales depend on combinations (a given publisher on a given platform in a given era) that a purely additive linear model cannot express, and the forest handles one-hot features without scaling. It also provides feature importance.</p>
+    </div>
+    <div class="glass-card pad">
+        <h2>Project configuration {{ impl('actual') }}</h2>
+        {% if cfg %}
+        <div class="kv">
+            <div>n_estimators</div><div>{{ cfg.n_estimators }}</div>
+            <div>max_depth</div><div>{{ cfg.max_depth if cfg.max_depth is not none else 'None (unlimited)' }}</div>
+            <div>min_samples_split</div><div>{{ cfg.min_samples_split }}</div>
+            <div>random_state</div><div>{{ cfg.random_state }}</div>
+            <div>Saved file</div><div><code>models/random_forest_model.joblib</code></div>
+        </div>
+        <p style="margin-top:12px">These are the <b>best parameters found by GridSearchCV</b>, read from the trained model.</p>
+        {% else %}
+        <p>Best parameters (from GridSearchCV): {{ meta.get('best_params') }}</p>
+        {% endif %}
+        {% if meta.get('param_grid') %}
+        <h3 style="margin-top:14px">GridSearchCV parameter grid</h3>
+        <div class="table-wrap"><table class="data"><thead><tr><th>Parameter</th><th>Values searched</th><th>Best</th></tr></thead><tbody>
+        {% for k, v in meta.param_grid.items() %}<tr><td><code>{{ k }}</code></td><td>{{ v|join(', ') }}</td><td><b style="color:#d9a5ff">{{ meta.best_params_clean[k] }}</b></td></tr>{% endfor %}
+        </tbody></table></div>
+        {% set gs = meta.get('grid_search', {}) %}
+        {% if gs %}<p style="font-size:12px;margin-bottom:0">{{ gs.n_candidates }} combinations × {{ gs.cv_folds }}-fold cross-validation, scoring = <code>{{ gs.scoring }}</code>. Best cross-validated MAE: {{ '%.4f' % gs.best_cv_mae }}.</p>{% endif %}
+        {% endif %}
+    </div>
+</section>
+
+{% if ready %}
+<section class="block glass-card pad">
+    <h2>Evaluation results <span class="badge b-info">test set</span></h2>
+    {{ metric_cards(m) }}
+    {{ mape_note(m) }}
+    <h3 style="margin-top:18px">Experiment details</h3>
+    <div class="kv">
+        <div>Model type</div><div>Random Forest Regressor inside a preprocessing Pipeline</div>
+        <div>Target variable</div><div>Global_Sales</div>
+        <div>Training samples</div><div>{{ '{:,}'.format(di.n_train) }}</div>
+        <div>Test samples</div><div>{{ '{:,}'.format(di.n_test) }}</div>
+        <div>Encoded input features</div><div>{{ '{:,}'.format(meta.n_encoded_features) }}</div>
+    </div>
+</section>
+
+<section class="block grid-2">
+    <div class="glass-card pad">
+        <div class="chart-head"><h3>Actual vs Predicted Global Sales</h3><button class="btn" id="rfZoom" type="button">Show full range</button></div>
+        <div class="chart-box tall"><canvas id="rfScatter"></canvas></div>
+    </div>
+    <div class="glass-card pad">
+        <div class="chart-head"><h3>Feature importance (top {{ meta.feature_importance|length }})</h3></div>
+        <div class="chart-box tall"><canvas id="rfImportance"></canvas></div>
+        <p style="margin-bottom:0;font-size:12px">Names come from the fitted preprocessor (e.g. <code>Publisher_…</code>, <code>Genre_…</code>, <code>Platform_…</code>). Importance = mean decrease in impurity across all trees; values sum to 1 over all {{ '{:,}'.format(meta.n_encoded_features) }} features.</p>
+    </div>
+</section>
+<section class="block glass-card pad">
+    <div class="chart-head"><h3>Residual distribution (actual − predicted)</h3></div>
+    <div class="chart-box"><canvas id="rfResid"></canvas></div>
+    <p id="rfResidNote" style="margin-bottom:0;font-size:12px"></p>
+</section>
+{% endif %}
+{% endblock %}
+{% block scripts %}{% if ready %}<script>GS.modelCharts('random-forest');</script>{% endif %}{% endblock %}

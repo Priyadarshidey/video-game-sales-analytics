@@ -1,0 +1,35 @@
+{# Paginated, filterable Fact_Sales browser. Needs `opts` and `sizes`. Data comes from /api/warehouse/fact-table #}
+<div id="factApp" data-api="{{ url_for('api_fact_table') }}">
+    <div class="filters">
+        <div><label for="fq">Search game name</label><input type="search" id="fq" placeholder="e.g. Mario"></div>
+        <div><label for="fplatform">Platform</label>
+            <select id="fplatform"><option value="">All</option>{% for v in opts.platforms %}<option>{{ v }}</option>{% endfor %}</select></div>
+        <div><label for="fgenre">Genre</label>
+            <select id="fgenre"><option value="">All</option>{% for v in opts.genres %}<option>{{ v }}</option>{% endfor %}</select></div>
+        <div><label for="fpublisher">Publisher</label>
+            <select id="fpublisher"><option value="">All</option>{% for v in opts.publishers %}<option>{{ v }}</option>{% endfor %}</select></div>
+        <div><label for="fyear">Year</label>
+            <select id="fyear"><option value="">All</option>{% for v in opts.years|reverse %}<option>{{ v }}</option>{% endfor %}{% if opts.has_unknown_year %}<option value="unknown">Unknown</option>{% endif %}</select></div>
+        <div><button class="btn" id="freset" type="button">Reset</button></div>
+    </div>
+
+    <div style="margin-bottom:10px"><label class="check"><input type="checkbox" id="showFk"> Show foreign-key columns (Game_ID, Platform_ID, Genre_ID, Publisher_ID, Year_ID)</label></div>
+
+    <div class="table-wrap scroll-y">
+        <table class="data" id="factTable">
+            <thead></thead>
+            <tbody><tr><td>Loading…</td></tr></tbody>
+        </table>
+    </div>
+
+    <div class="pager">
+        <div id="factInfo">-</div>
+        <div class="ctrls">
+            <label for="fper">Records per page</label>
+            <select id="fper">{% for n in sizes %}<option value="{{ n }}">{{ n }}</option>{% endfor %}</select>
+            <button class="btn" id="fprev" type="button">← Previous</button>
+            <span id="fpage">Page 1</span>
+            <button class="btn" id="fnext" type="button">Next →</button>
+        </div>
+    </div>
+</div>

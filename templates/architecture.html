@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "_macros.html" import head %}
+{% block title %}Architecture & Tech Stack{% endblock %}
+{% block content %}
+{{ head("PROJECT", "System <span>Architecture</span>", "How data flows from the CSV file to the web dashboard, and the technologies involved.") }}
+
+<section class="block glass-card pad">
+    <div class="arch-flow">
+        {% for name, desc in arch %}
+        <div class="arch-step"><b>{{ name }}</b><span>{{ desc }}</span></div>
+        {% if not loop.last %}<div class="arch-arrow">↓</div>{% endif %}
+        {% endfor %}
+    </div>
+    <div class="callout warn" style="max-width:640px;margin:18px auto 0"><b>Note:</b> the warehouse and the ML training both start from <code>data/vgsales.csv</code>. The Flask app reads the warehouse for the Data Warehousing pages and the Joblib files for prediction/metrics; the models are not trained from SQLite.</div>
+</section>
+
+<section class="block">
+    <h2>Technology stack</h2>
+    <div class="stack-grid">
+        {% for group, items in stack %}
+        <div class="stack-item"><small>{{ group }}</small><div>{% for i in items %}<span class="badge b-info">{{ i }}</span>{% endfor %}</div></div>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="block glass-card pad">
+    <h2>Project files</h2>
+    <div class="table-wrap"><table class="data"><thead><tr><th>File</th><th>Purpose</th></tr></thead><tbody>
+        <tr><td><code>app.py</code></td><td>Flask routes, JSON APIs, prediction endpoint</td></tr>
+        <tr><td><code>train_model.py</code></td><td>Preprocessing, training, GridSearchCV, evaluation, saves models + metadata, rebuilds the warehouse</td></tr>
+        <tr><td><code>warehouse.py</code></td><td>ETL to SQLite star schema and warehouse queries; dataset statistics</td></tr>
+        <tr><td><code>content.py</code></td><td>Text for the pipeline stage explanations</td></tr>
+        <tr><td><code>templates/</code>, <code>static/</code></td><td>Jinja pages, CSS, JavaScript, bundled Chart.js</td></tr>
+        <tr><td><code>data/vgsales.csv</code></td><td>Kaggle dataset</td></tr>
+        <tr><td><code>models/*.joblib</code></td><td>Saved pipelines and metadata</td></tr>
+        <tr><td><code>datawarehouse.db</code></td><td>Generated SQLite warehouse</td></tr>
+    </tbody></table></div>
+</section>
+{% endblock %}

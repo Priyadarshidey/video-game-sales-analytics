@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "_macros.html" import head, kpi, impl %}
+{% block title %}Data Warehouse{% endblock %}
+{% block content %}
+{{ head("DATA WAREHOUSING", "Data <span>Warehouse</span>", "A star-schema warehouse built from vgsales.csv by an ETL process and stored in the local SQLite database datawarehouse.db. Every number below is queried from that database.") }}
+
+<section class="kpi-grid">
+    {{ kpi("Total records", '{:,}'.format(s.total_records), "rows in Fact_Sales") }}
+    {{ kpi("Games", '{:,}'.format(s.games)) }}
+    {{ kpi("Platforms", s.platforms) }}
+    {{ kpi("Genres", s.genres) }}
+    {{ kpi("Publishers", '{:,}'.format(s.publishers)) }}
+    {{ kpi("Year range", '%s-%s' % (s.year_min, s.year_max), "plus an 'Unknown' member") }}
+    {{ kpi("Total global sales", '{:,.2f}M'.format(s.global_sales), "million units") }}
+</section>
+
+<section class="block glass-card pad">
+    <h2>What is a data warehouse? {{ impl('actual') }}</h2>
+    <p>A data warehouse is a subject-oriented, integrated, non-volatile store of cleaned historical data designed for analysis rather than day-to-day transactions. In this project the subject is <b>video game sales</b>. The CSV is extracted, cleaned and loaded into a star schema so that sales (measures) can be sliced by game, platform, genre, publisher and year (dimensions) with simple joins.</p>
+    <p>Implemented in <code>warehouse.py</code>: <code>extract()</code> → <code>transform()</code> → <code>load()</code>. The database file is created automatically at start-up by <code>ensure_warehouse()</code>{% if etl.built_at %} (last built {{ etl.built_at }}){% endif %}.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">
+        <a class="btn" href="{{ url_for('dw_star') }}">Star schema →</a>
+        <a class="btn" href="{{ url_for('dw_fact') }}">Fact &amp; dimension tables →</a>
+        <a class="btn" href="{{ url_for('dw_etl') }}">ETL pipeline →</a>
+    </div>
+</section>
+
+<section class="block glass-card pad">
+    <h2>Star Schema</h2>
+    {% include "_star.html" %}
+</section>
+
+<section class="block glass-card pad">
+    <h2>FACT_SALES table</h2>
+    {% include "_facttable.html" %}
+</section>
+{% endblock %}
+{% block scripts %}<script>GS.starLines(); GS.factTable();</script>{% endblock %}

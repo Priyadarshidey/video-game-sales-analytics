@@ -1,0 +1,43 @@
+{# Star schema diagram. `s` = warehouse.summary() #}
+<div class="star-diagram" id="starDiagram">
+    <svg id="starLines" aria-hidden="true"></svg>
+
+    <div class="tbl-card sd-plat" data-node="plat">
+        <header>Dim_Platform <small>{{ '{:,}'.format(s.platforms) }} rows</small></header>
+        <ul><li>Platform_ID <em class="pk">PK</em></li><li>Platform</li></ul>
+    </div>
+    <div class="tbl-card sd-game" data-node="game">
+        <header>Dim_Game <small>{{ '{:,}'.format(s.games) }} rows</small></header>
+        <ul><li>Game_ID <em class="pk">PK</em></li><li>Name</li></ul>
+    </div>
+    <div class="tbl-card sd-genre" data-node="genre">
+        <header>Dim_Genre <small>{{ '{:,}'.format(s.genres) }} rows</small></header>
+        <ul><li>Genre_ID <em class="pk">PK</em></li><li>Genre</li></ul>
+    </div>
+
+    <div class="tbl-card fact sd-fact" data-node="fact">
+        <header>Fact_Sales <small>{{ '{:,}'.format(s.total_records) }} rows</small></header>
+        <ul>
+            <li>Sales_ID <em class="pk">PK</em></li>
+            <li>Game_ID <em class="fk">FK</em></li>
+            <li>Platform_ID <em class="fk">FK</em></li>
+            <li>Genre_ID <em class="fk">FK</em></li>
+            <li>Publisher_ID <em class="fk">FK</em></li>
+            <li>Year_ID <em class="fk">FK</em></li>
+            <li>NA_Sales <em class="ms">measure</em></li>
+            <li>EU_Sales <em class="ms">measure</em></li>
+            <li>JP_Sales <em class="ms">measure</em></li>
+            <li>Other_Sales <em class="ms">measure</em></li>
+            <li>Global_Sales <em class="ms">measure</em></li>
+        </ul>
+    </div>
+
+    <div class="tbl-card sd-pub" data-node="pub">
+        <header>Dim_Publisher <small>{{ '{:,}'.format(s.publishers) }} rows</small></header>
+        <ul><li>Publisher_ID <em class="pk">PK</em></li><li>Publisher</li></ul>
+    </div>
+    <div class="tbl-card sd-year" data-node="year">
+        <header>Dim_Year <small>{{ '{:,}'.format(s.year_members) }} rows</small></header>
+        <ul><li>Year_ID <em class="pk">PK</em></li><li>Year</li></ul>
+    </div>
+</div>

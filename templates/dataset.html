@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "_macros.html" import head, kpi, impl %}
+{% block title %}Dataset Explorer{% endblock %}
+{% block content %}
+{{ head("DATASET EXPLORER", "Kaggle <span>Video Game Sales</span> Dataset", "Source: Kaggle - Video Game Sales (data/vgsales.csv). All statistics on this page are calculated from the CSV file when the page loads.") }}
+
+<section class="kpi-grid">
+    {{ kpi("Records", '{:,}'.format(ds.records), "rows in the CSV") }}
+    {{ kpi("Columns", ds.n_columns, "incl. Rank") }}
+    {{ kpi("Year range", '%d-%d' % (ds.year_min, ds.year_max)) }}
+    {{ kpi("Total global sales", '{:,.1f}M'.format(ds.global_sales_total)) }}
+    {{ kpi("Mean sales / title", '%.3fM' % ds.global_sales.mean, "median %.3fM" % ds.global_sales.median) }}
+    {{ kpi("Max single title", '%.2fM' % ds.global_sales.max) }}
+</section>
+
+<section class="block glass-card pad">
+    <h2>Columns <span class="badge b-info">dataset schema</span></h2>
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th>Column</th><th>pandas dtype</th><th class="num">Unique</th><th class="num">Missing</th><th>Role in the ML model</th></tr></thead>
+        <tbody>
+        {% set roles = {'Platform':'Feature','Year':'Feature','Genre':'Feature','Publisher':'Feature','Global_Sales':'Target','Name':'Not used (warehouse: Dim_Game)','Rank':'Not used (row identifier)','NA_Sales':'Not used (component of target)','EU_Sales':'Not used (component of target)','JP_Sales':'Not used (component of target)','Other_Sales':'Not used (component of target)'} %}
+        {% for c in ds.columns %}
+        <tr><td><code>{{ c.name }}</code></td><td>{{ c.dtype }}</td><td class="num">{{ '{:,}'.format(c.unique) }}</td><td class="num">{{ c.missing }}</td>
+            <td>{% set r = roles.get(c.name, '-') %}{% if r == 'Feature' %}<span class="badge b-model-l">Feature</span>{% elif r == 'Target' %}<span class="badge b-model-r">Target</span>{% else %}{{ r }}{% endif %}</td></tr>
+        {% endfor %}
+        </tbody></table></div>
+</section>
+
+<section class="block grid-2">
+    <div class="glass-card pad">
+        <h2>Features and target</h2>
+        <div class="kv">
+            <div>Features (X)</div><div>Platform, Year, Genre, Publisher</div>
+            <div>Target (y)</div><div>Global_Sales (million units)</div>
+        </div>
+        <h3 style="margin-top:18px">Why regional sales are not used as features</h3>
+        <p>Global_Sales is (approximately) the sum of NA_Sales, EU_Sales, JP_Sales and Other_Sales. If the regional columns were given to the model it could simply add them up - this is <b>target leakage</b>, and the model would be useless for a game that has not been released yet. The current pipeline therefore predicts global sales only from information that is known <i>before</i> release: platform, genre, publisher and year. <code>Name</code> and <code>Rank</code> are identifiers (Rank is derived from sales, so it also leaks the target).</p>
+    </div>
+    <div class="glass-card pad">
+        <h2>Global_Sales distribution</h2>
+        <div class="kv">
+            <div>Mean</div><div>{{ ds.global_sales.mean }}</div>
+            <div>Median</div><div>{{ ds.global_sales.median }}</div>
+            <div>75th percentile</div><div>{{ ds.global_sales.q75 }}</div>
+            <div>Std. deviation</div><div>{{ ds.global_sales.std }}</div>
+            <div>Min / Max</div><div>{{ ds.global_sales.min }} / {{ ds.global_sales.max }}</div>
+        </div>
+        <div class="callout warn">The distribution is heavily right-skewed (mean far above median): a few blockbusters dominate total sales. This is why error metrics look large relative to typical games.</div>
+    </div>
+</section>
+
+<section class="block grid-2">
+    <div class="glass-card pad"><div class="chart-head"><h3>Global sales by genre (million units)</h3></div><div class="chart-box"><canvas id="chGenre"></canvas></div></div>
+    <div class="glass-card pad"><div class="chart-head"><h3>Titles per platform (top 12)</h3></div><div class="chart-box"><canvas id="chPlatform"></canvas></div></div>
+</section>
+<section class="block glass-card pad">
+    <div class="chart-head"><h3>Global sales by release year (million units)</h3></div>
+    <div class="chart-box"><canvas id="chYear"></canvas></div>
+</section>
+
+<section class="block glass-card pad">
+    <h2>Top 10 titles by global sales</h2>
+    <div class="table-wrap"><table class="data"><thead><tr><th>#</th><th>Name</th><th>Platform</th><th class="num">Year</th><th class="num">Global (M)</th></tr></thead><tbody>
+    {% for g in ds.top_games %}<tr><td>{{ loop.index }}</td><td>{{ g.Name }}</td><td>{{ g.Platform }}</td><td class="num">{{ g.Year if g.Year else '-' }}</td><td class="num">{{ '%.2f' % g.Global_Sales }}</td></tr>{% endfor %}
+    </tbody></table></div>
+</section>
+{% endblock %}
+{% block scripts %}<script>GS.datasetCharts();</script>{% endblock %}

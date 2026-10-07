@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "_macros.html" import head, pipeline, kpi %}
+{% block title %}Data Mining & ML{% endblock %}
+{% block content %}
+{% set di = meta.get('dataset_info', {}) %}
+{{ head("DATA MINING & MACHINE LEARNING", "Data Mining <span>&amp; ML Pipeline</span>", "The knowledge-discovery workflow used in this project, from the raw CSV to a prediction. Click each stage for what happens here, the component that implements it, and real numbers from training.") }}
+
+<section class="block">{{ pipeline("dmPipe", stages) }}</section>
+
+{% if di %}
+<section class="kpi-grid">
+    {{ kpi("Rows after cleaning", '{:,}'.format(di.rows_after_cleaning), "from " ~ '{:,}'.format(di.raw_rows) ~ " raw") }}
+    {{ kpi("Training rows", '{:,}'.format(di.n_train), "80%") }}
+    {{ kpi("Test rows", '{:,}'.format(di.n_test), "20%") }}
+    {{ kpi("Encoded features", '{:,}'.format(meta.get('n_encoded_features', 0)), "after One-Hot + scaling") }}
+</section>
+{% endif %}
+
+<section class="block grid-2">
+    <div class="glass-card pad">
+        <h2>What kind of data mining is this?</h2>
+        <p>The project applies <b>predictive data mining - regression</b>. Given historical records (platform, genre, publisher, year) the algorithms learn a mapping to a continuous numeric target, <code>Global_Sales</code>. The workflow follows the classic KDD steps: selection → pre-processing → transformation → mining (model training) → evaluation → using the knowledge (prediction).</p>
+    </div>
+    <div class="glass-card pad">
+        <h2>Explore each step</h2>
+        <ul>
+            <li><a href="{{ url_for('dm_preprocessing') }}">Data Preprocessing</a> - imputation, encoding, scaling, ColumnTransformer</li>
+            <li><a href="{{ url_for('dm_features') }}">Feature Engineering</a> - what was selected, what was not</li>
+            <li><a href="{{ url_for('model_linear') }}">Linear Regression</a> and <a href="{{ url_for('model_rf') }}">Random Forest</a></li>
+            <li><a href="{{ url_for('model_comparison') }}">Model Comparison</a> and <a href="{{ url_for('model_evaluation') }}">Evaluation</a></li>
+        </ul>
+    </div>
+</section>
+{% endblock %}

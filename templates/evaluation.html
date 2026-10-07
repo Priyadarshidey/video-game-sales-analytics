@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "_macros.html" import head, fm, mape_note %}
+{% block title %}Model Evaluation{% endblock %}
+{% block content %}
+{% set di = meta.get('dataset_info', {}) %}
+{{ head("MACHINE LEARNING / EVALUATION", "Model <span>Evaluation</span>", "How the models are scored, and what the numbers mean for this project.") }}
+
+<section class="block glass-card pad">
+    <h2>Evaluation protocol</h2>
+    <div class="kv">
+        <div>Split</div><div>80% training / 20% test (<code>train_test_split</code>, random_state = {{ di.get('random_state', 42) }})</div>
+        <div>Training samples</div><div>{{ '{:,}'.format(di.get('n_train', 0)) }}</div>
+        <div>Test samples</div><div>{{ '{:,}'.format(di.get('n_test', 0)) }}</div>
+        <div>Tuning</div><div>Random Forest only - GridSearchCV with 3-fold cross-validation on the training split; the test split is never used for tuning</div>
+        <div>Metrics stored in</div><div><code>models/metadata.joblib</code></div>
+    </div>
+</section>
+
+<section class="block glass-card pad">
+    <h2>Metric definitions</h2>
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th>Metric</th><th>Formula</th><th>Interpretation</th></tr></thead>
+        <tbody>
+            <tr><td><b>MAE</b></td><td><code>mean(|y − ŷ|)</code></td><td>Typical error in million units. Lower is better; robust to outliers.</td></tr>
+            <tr><td><b>MSE</b></td><td><code>mean((y − ŷ)²)</code></td><td>Squares errors, so a few huge misses (blockbusters) dominate. Lower is better.</td></tr>
+            <tr><td><b>RMSE</b></td><td><code>√MSE</code></td><td>Same units as sales. Lower is better.</td></tr>
+            <tr><td><b>R²</b></td><td><code>1 − SS_res / SS_tot</code></td><td>Fraction of variance explained. Higher is better; 0 = no better than predicting the mean; negative = worse.</td></tr>
+            <tr><td><b>MAPE</b></td><td><code>mean(|y − ŷ| / |y|) × 100</code> over y ≠ 0</td><td>Average error as a percentage. Zero actual values are excluded to avoid division by zero. Lower is better; inflated when actual values are tiny.</td></tr>
+        </tbody></table></div>
+</section>
+
+{% if comp %}
+<section class="block glass-card pad">
+    <h2>Results on the test set</h2>
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th>Metric</th><th class="num">Linear Regression</th><th class="num">Random Forest</th></tr></thead>
+        <tbody>
+        {% for r in comp.rows %}
+        <tr><td>{{ r.label }}</td>
+            <td class="num {% if r.winner == 'linear' %}win{% endif %}">{{ fm(r.key, r.linear) }}</td>
+            <td class="num {% if r.winner == 'random_forest' %}win{% endif %}">{{ fm(r.key, r.random_forest) }}</td></tr>
+        {% endfor %}
+        </tbody></table></div>
+    {{ mape_note(meta.random_forest_metrics) }}
+    <h3 style="margin-top:18px">Reading the results</h3>
+    <ul>
+        <li>The target is heavily skewed: most titles sell well under a million units, a handful sell tens of millions. Squared-error metrics (MSE, RMSE, R²) are dominated by those few blockbusters, whereas MAE and MAPE reflect the typical title. The two groups can therefore favour different models.</li>
+        <li>R² is {{ 'low' if meta.linear_metrics.R2 < 0.5 and meta.random_forest_metrics.R2 < 0.5 else 'moderate/high' }} for both models: with only platform, genre, publisher and year as inputs, a large part of the variation in sales is unexplained.</li>
+        <li>Metrics are computed on the raw model outputs (negative linear predictions are not clipped in evaluation).</li>
+    </ul>
+    <p><a href="{{ url_for('model_comparison') }}">Open the full comparison dashboard →</a></p>
+</section>
+{% endif %}
+{% endblock %}

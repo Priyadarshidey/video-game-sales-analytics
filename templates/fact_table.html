@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "_macros.html" import head, impl %}
+{% block title %}Fact & Dimension Tables{% endblock %}
+{% block content %}
+{{ head("DATA WAREHOUSING / TABLES", "Fact &amp; <span>Dimension Tables</span>", "Browse the real tables stored in datawarehouse.db.") }}
+
+<section class="block grid-2">
+    <div class="glass-card pad">
+        <h2>Fact table</h2>
+        <p>The <b>fact table</b> records measurable business events. <code>Fact_Sales</code> holds {{ '{:,}'.format(s.total_records) }} rows. Its columns are five foreign keys (<code>Game_ID, Platform_ID, Genre_ID, Publisher_ID, Year_ID</code>) and five measures (<code>NA_Sales, EU_Sales, JP_Sales, Other_Sales, Global_Sales</code>), all in millions of units.</p>
+    </div>
+    <div class="glass-card pad">
+        <h2>Dimension tables</h2>
+        <p>A <b>dimension table</b> gives context to the facts. Each dimension stores every distinct value once with a surrogate integer key, which removes repeated text from the fact table (normalisation) and lets you filter or group by that attribute. Missing publishers/genres are stored as <code>Unknown</code>; missing years are stored as a NULL year member.</p>
+    </div>
+</section>
+
+<section class="block glass-card pad">
+    <h2>FACT_SALES {{ impl('actual') }}</h2>
+    {% include "_facttable.html" %}
+</section>
+
+<section class="block">
+    <h2>Dimension tables (first 10 rows each)</h2>
+    <div class="grid-3" id="dimGrid">
+        {% for t in ['dim_game','dim_platform','dim_genre','dim_publisher','dim_year'] %}
+        <div class="glass-card pad dim-preview" data-table="{{ t }}">
+            <h3><code>{{ t }}</code> <span class="badge b-info" data-total>…</span></h3>
+            <div class="table-wrap"><table class="data"><thead></thead><tbody><tr><td>Loading…</td></tr></tbody></table></div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}<script>GS.factTable(); GS.dimPreviews();</script>{% endblock %}

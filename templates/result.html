@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% from "_macros.html" import fm %}
+{% block title %}Prediction Results{% endblock %}
+{% block content %}
+<div class="result-wrap">
+    <div class="result-hero">
+        <div class="trophy">🏆</div>
+        <div>
+            <div class="eyebrow">MODEL OUTPUT / LIVE INFERENCE</div>
+            <h1 style="margin:6px 0 4px;font-size:36px;letter-spacing:-1px">Prediction Results</h1>
+            <p style="margin:0;color:var(--muted);font-size:13px">Estimated global sales for the selected game configuration.</p>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="error-card">⚠ {{ error }}</div>
+    {% elif prediction %}
+    <section class="selected-game glass-card block">
+        <div class="game-symbol">🎮</div>
+        <div class="game-details" style="flex:1">
+            <span class="tiny-label">SELECTED GAME INFORMATION</span>
+            <h2>{{ form.platform }} · {{ form.genre }}</h2>
+            <div class="kv" style="margin-top:6px">
+                <div>Platform</div><div>{{ form.platform }}</div>
+                <div>Genre</div><div>{{ form.genre }}</div>
+                <div>Publisher</div><div>{{ form.publisher }}</div>
+                <div>Year</div><div>{{ form.year }}</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="prediction-cards">
+        <article class="prediction-card linear glow-linear">
+            <div class="prediction-icon">⌁</div>
+            <div class="model-name">LINEAR REGRESSION PREDICTION</div>
+            <div class="model-sub">Predicted Global Sales</div>
+            <div class="big-number">{{ '%.3f' % prediction.linear }}</div>
+            <div class="unit">million units</div>
+        </article>
+        <article class="prediction-card forest glow-forest">
+            <div class="prediction-icon">♣</div>
+            <div class="model-name">RANDOM FOREST PREDICTION</div>
+            <div class="model-sub">Predicted Global Sales</div>
+            <div class="big-number">{{ '%.3f' % prediction.random_forest }}</div>
+            <div class="unit">million units</div>
+        </article>
+    </section>
+
+    <section class="diff-card glass-card">
+        <div><small>Difference between models</small><b>{{ '%.3f' % diff.abs_value }} M</b></div>
+        <div><small>Percentage difference</small><b>{% if diff.percent is not none %}{{ diff.percent }}%{% else %}n/a{% endif %}</b></div>
+        <div><small>Higher estimate</small><b style="font-size:16px">{{ diff.higher or 'Equal' }}</b></div>
+        <p style="flex-basis:100%;margin:0;color:#7f90b8;font-size:11.5px">Percentage difference = |RF − LR| ÷ average of the two predictions. These are point estimates; no confidence interval is produced by either model.</p>
+    </section>
+
+    <section class="block glass-card pad" style="margin-top:18px">
+        <div class="chart-head"><h3>Linear Regression vs Random Forest</h3></div>
+        <div class="chart-box short"><canvas id="resultChart"></canvas></div>
+    </section>
+
+    {% if comp %}
+    <section class="block glass-card pad">
+        <h3>Model metric summary <span class="badge b-info">held-out test set</span></h3>
+        <div class="table-wrap"><table class="data">
+            <thead><tr><th>Metric</th><th class="num">Linear Regression</th><th class="num">Random Forest</th></tr></thead>
+            <tbody>
+            {% for r in comp.rows %}
+            <tr><td>{{ r.label }}</td>
+                <td class="num {% if r.winner == 'linear' %}win{% endif %}">{{ fm(r.key, r.linear) }}</td>
+                <td class="num {% if r.winner == 'random_forest' %}win{% endif %}">{{ fm(r.key, r.random_forest) }}</td></tr>
+            {% endfor %}
+            </tbody></table></div>
+        <p style="margin-bottom:0;font-size:12px">Overall recommended model on these metrics: <b style="color:#7df0a8">{{ comp.recommended_name }}</b>.</p>
+    </section>
+    {% endif %}
+
+    <section class="block">
+        <h2>How the prediction was generated</h2>
+        <div class="steps-row">
+            <div><b>User input</b><span>Platform, Genre, Publisher and Year from the form.</span></div>
+            <div><b>Preprocessing</b><span>Input becomes a one-row DataFrame; imputers handle any gaps.</span></div>
+            <div><b>Feature transformation</b><span>One-Hot Encoding for categories, StandardScaler for Year.</span></div>
+            <div><b>Model inference</b><span><code>predict()</code> on both saved Joblib pipelines.</span></div>
+            <div><b>Predicted Global Sales</b><span>Million units; negative outputs clipped to 0.</span></div>
+        </div>
+    </section>
+
+    <section class="explain-card glass-card">
+        <div class="info-icon">i</div>
+        <div>
+            <h3>What does this mean?</h3>
+            <p>The values represent estimated global sales in million units, predicted by two different machine learning models trained on historical video game sales data. They use only platform, genre, publisher and year, so they are rough statistical estimates, not guarantees.</p>
+        </div>
+    </section>
+    {% endif %}
+
+    <div class="result-actions">
+        <a href="{{ url_for('prediction_page') }}" class="secondary-button">← Back to Predictor</a>
+        <button class="secondary-button" onclick="window.close()">✕ Close Result</button>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}{% if prediction %}<script>GS.resultChart({{ prediction.linear }}, {{ prediction.random_forest }});</script>{% endif %}{% endblock %}
